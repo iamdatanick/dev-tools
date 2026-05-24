@@ -1,0 +1,120 @@
+name: Auto-Route Apply (reusable)
+
+# Pattern B: pre-merge auto-correct.
+# Runs on pull_request. Applies routing rules against the PR branch.
+# Pushes corrections back to the PR branch (NOT a separate commit on master).
+# Exits 0 regardless of whether changes were made (non-blocking).
+#
+# Consumer invocation:
+#   jobs:
+#     auto-route:
+#       uses: iamdatanick/dev-tools/.github/workflows/auto_route_apply_reusable.yml@v1
+#       with:
+#         policy-path: tools/repo_routing_policy.yaml
+#
+# Requirements on the consumer repo:
+#   - Settings -> Actions -> General -> Workflow permissions -> "Read and write permissions"
+#
+# Forks: workflow is skipped automatically (pull_request from a fork has read-only token).
+
+on:
+  workflow_call:
+    inputs:
+      policy-path:
+        description: 'Path to the consumer repo policy YAML'
+        required: false
+        type: string
+        default: 'tools/repo_routing_policy.yaml'
+      engine-ref:
+        description: 'Ref (tag/branch) of dev-tools to checkout the engine from'
+        required: false
+        type: string
+        default: 'v1'
+      commit-message:
+        description: 'Commit message subject for auto-route fixups'
+        required: false
+        type: string
+        default: 'chore(routing): auto-apply rules'
+
+jobs:
+  apply:
+    # Skip on PRs from forks (no write access to PR branch).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout consumer PR branch
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          token: ${{ github.token }}
+          fetch-depth: 0
+
+      - name: Checkout dev-tools engine
+        uses: actions/checkout@v4
+        with:
+          repository: iamdatanick/dev-tools
+          ref: ${{ inputs.engine-ref }}
+          path: .dev-tools
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install pyyaml
+
+      - name: Validate policy exists
+        run: |
+          if [ ! -f "${{ inputs.policy-path }}" ]; then
+            echo "::warning::Policy file not found at ${{ inputs.policy-path }}; skipping auto-route"
+            exit 0
+          fi
+
+      - name: Configure git for auto-route commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run auto-route (apply all rules)
+        id: apply
+        run: |
+          python3 .dev-tools/routing/auto_route.py             --policy ${{ inputs.policy-path }}             --root .             apply --allow-unrelated-dirty 2>&1 | tee /tmp/auto_route_output.txt || true
+
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "moves_made=true" >> $GITHUB_OUTPUT
+            git add -A
+            git commit -m "${{ inputs.commit-message }}"               -m "Automated routing applied via iamdatanick/dev-tools@${{ inputs.engine-ref }}."               -m "$(cat /tmp/auto_route_output.txt | tail -30)"
+          else
+            echo "moves_made=false" >> $GITHUB_OUTPUT
+            echo "No routing changes needed."
+          fi
+
+      - name: Push corrections to PR branch
+        if: steps.apply.outputs.moves_made == 'true'
+        run: |
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+      - name: Comment on PR
+        if: steps.apply.outputs.moves_made == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const output = fs.readFileSync('/tmp/auto_route_output.txt', 'utf8').slice(0, 2000);
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "Auto-route applied. Files moved to canonical locations per tools/repo_routing_policy.yaml.
+
+" + "```
+" + output + "
+```
+
+_Non-blocking. Engine: iamdatanick/dev-tools@${{ inputs.engine-ref }}._"
+            });

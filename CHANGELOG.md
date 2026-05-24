@@ -5,6 +5,18 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.1.0] — 2026-05-24
+
+### Added
+
+- New reusable workflow `auto_route_apply_reusable.yml` (Pattern B: auto-route on PR). Runs `apply --allow-unrelated-dirty` against the PR branch, pushes corrections back to the PR branch, comments on the PR with what moved, exits 0 (non-blocking). Author can place files anywhere; engine corrects them automatically on next CI run. Skips on PRs from forks (no write permission).
+- README now advertises both Pattern B (auto-route, recommended) and Pattern A (check-only blocking) as consumer options.
+
+### Notes
+
+- Pattern B requires consumers enable "Read and write permissions" under Settings → Actions → General → Workflow permissions.
+- Existing Pattern A workflow (`repo_routing_reusable.yml`) is unchanged and remains supported for consumers who want blocking enforcement.
+
 ## [v1.0.4] — 2026-05-24
 
 ### Fixed

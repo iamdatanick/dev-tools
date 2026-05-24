@@ -19,7 +19,27 @@ NAVIGATION.md                        # agent entry doc, copy from routing/templa
 
 ### 2. The CI workflow shim
 
+Pick one of two patterns:
+
+**Pattern B (auto-route, non-blocking) — RECOMMENDED**
+
 `.github/workflows/repo_routing.yml`:
+
+```yaml
+name: Auto-Route
+on: [pull_request]
+jobs:
+  auto-route:
+    uses: iamdatanick/dev-tools/.github/workflows/auto_route_apply_reusable.yml@v1
+    with:
+      policy-path: tools/repo_routing_policy.yaml
+```
+
+Auto-applies routing rules on every PR, pushes corrections back to the PR branch, and comments on the PR with what moved. Never blocks. Author can put files anywhere; engine routes them.
+
+Requirement: enable "Read and write permissions" under repo Settings → Actions → General → Workflow permissions.
+
+**Pattern A (check-only, blocking)**
 
 ```yaml
 name: Repo Routing Check
@@ -30,6 +50,8 @@ jobs:
     with:
       policy-path: tools/repo_routing_policy.yaml
 ```
+
+Fails the PR if any file is misplaced. Author must fix manually.
 
 ### 3. Run locally
 

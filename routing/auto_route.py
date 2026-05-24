@@ -35,7 +35,7 @@ except ImportError:
 
 # === Constants ============================================================
 
-VERSION = "1.0.4"
+VERSION = "1.1.0"
 
 DEFAULT_EXCLUDED_DIRS = {
     ".git", "target", "node_modules", "__pycache__", ".venv", "venv",
