@@ -85,9 +85,10 @@ jobs:
           set +e
           python3 .dev-tools/routing/auto_route.py --policy "${{ inputs.policy-path }}" --root . apply --allow-unrelated-dirty 2>&1 | tee /tmp/auto_route_output.txt
           set -e
-          if [[ -n "$(git status --porcelain)" ]]; then
+          # Exclude the .dev-tools/ engine checkout dir so it doesn't leak into commits
+          if git status --porcelain -- . ':!.dev-tools' | grep -q .; then
             echo "moves_made=true" >> $GITHUB_OUTPUT
-            git add -A
+            git add -A -- . ':!.dev-tools'
             git commit -m "${{ inputs.commit-message }}"
           else
             echo "moves_made=false" >> $GITHUB_OUTPUT

@@ -5,6 +5,12 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.1.2] — 2026-05-24
+
+### Fixed
+
+- `auto_route_apply_reusable.yml` was using `git add -A` to stage routing moves, which also swept in the `.dev-tools/` engine checkout directory as an implicit submodule gitlink. Now uses `git add -A -- . ':!.dev-tools'` with matching `git status -- . ':!.dev-tools'` pre-check. The engine checkout is invisible to consumer commits.
+
 ## [v1.1.1] — 2026-05-24
 
 ### Fixed
