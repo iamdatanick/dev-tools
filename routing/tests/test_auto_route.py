@@ -68,11 +68,22 @@ class TestTemplateRendering:
         result = ar.render_target("benchmarks/{date-from-filename}", Path("bench_2026-05-23.md"), tmp_path)
         assert result == "benchmarks/2026-05-23"
 
-    def test_date_from_filename_partial(self, tmp_path):
+    def test_date_from_filename_ignores_non_year_4digit(self, tmp_path):
+        """v1.0.2 fix: 0427 (April 27 in MM-DD format) is NOT a year. Engine should fall back to current YYYY-MM."""
         result = ar.render_target("archive/{date-from-filename}", Path("v1.10_FormalCert_0427.txt"), tmp_path)
-        # The regex picks up "0427" as the first 4-digit sequence
-        # That's expected behaviour for the simple v1 implementation
-        assert "0427" in result or "2026" in result
+        # Should fall back to current month since no valid year in filename
+        import re as _re
+        assert _re.match(r"archive/2\d{3}-\d{2}$", result), f"got {result!r}"
+
+    def test_date_from_filename_year_only(self, tmp_path):
+        """Real 4-digit year (>=2000) should be accepted with -01 suffix."""
+        result = ar.render_target("archive/{date-from-filename}", Path("snapshot_2026.md"), tmp_path)
+        assert result == "archive/2026-01"
+
+    def test_date_from_filename_year_month(self, tmp_path):
+        """YYYY-MM should match exactly."""
+        result = ar.render_target("archive/{date-from-filename}", Path("snapshot_2026-04.md"), tmp_path)
+        assert result == "archive/2026-04"
 
     def test_lower_kebab_name(self, tmp_path):
         result = ar.render_target("docs/architecture/{lower-kebab-name}", Path("MODULE_MAP.md"), tmp_path)

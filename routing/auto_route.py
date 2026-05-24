@@ -35,14 +35,14 @@ except ImportError:
 
 # === Constants ============================================================
 
-VERSION = "1.0.0"
+VERSION = "1.0.2"
 
 DEFAULT_EXCLUDED_DIRS = {
     ".git", "target", "node_modules", "__pycache__", ".venv", "venv",
     "dist", "build", "artifacts", ".cache", ".pytest_cache", ".mypy_cache",
 }
 
-DATE_FROM_FILENAME_RE = re.compile(r"(\d{4}-\d{2}-\d{2})|(\d{4}-\d{2})|(\d{4})")
+DATE_FROM_FILENAME_RE = re.compile(r"(2\d{3}-\d{2}-\d{2})|(2\d{3}-\d{2})|(2\d{3})")
 
 
 # === Data classes =========================================================
@@ -413,14 +413,9 @@ class Engine:
 
 # === Apply ================================================================
 
-def apply_rule(engine: Engine, rule_id: Optional[str], dry_run: bool = False) -> dict:
-    if not dry_run and is_working_tree_dirty(engine.repo_root):
-        return {"error": "working tree dirty; commit or stash first", "moved": [], "would_move": []}
-
+def _compute_moves(engine: Engine, rule_id: Optional[str]) -> list:
+    """Returns list of (src_path, dst_path) for the given rule (or all rules)."""
     rules_to_apply = engine.rules if rule_id is None else [r for r in engine.rules if r.id == rule_id]
-    if rule_id is not None and not rules_to_apply:
-        return {"error": f"no rule with id={rule_id}", "moved": [], "would_move": []}
-
     moves = []
     for rule in rules_to_apply:
         if rule.forbid_pattern:
@@ -437,6 +432,49 @@ def apply_rule(engine: Engine, rule_id: Optional[str], dry_run: bool = False) ->
             if current == target_norm:
                 continue
             moves.append((current, target_norm))
+    return moves
+
+
+def _dirty_files_in_set(repo_root: Path, moves: list) -> set:
+    """Returns set of paths from `moves` that are currently dirty in working tree."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            cwd=repo_root, text=True,
+        )
+    except subprocess.CalledProcessError:
+        return set()
+    dirty = set()
+    for line in out.strip().splitlines():
+        if len(line) < 3:
+            continue
+        path = line[3:].strip()
+        # Handle "old -> new" rename notation
+        if " -> " in path:
+            path = path.split(" -> ")[-1]
+        dirty.add(path.replace("\\", "/"))
+    move_srcs = {src for src, _ in moves}
+    return dirty & move_srcs
+
+
+
+
+def apply_rule(engine: Engine, rule_id: Optional[str], dry_run: bool = False, allow_unrelated_dirty: bool = False) -> dict:
+    if not dry_run:
+        # First compute the move set so we can do a selective dirty check.
+        prospective_moves = _compute_moves(engine, rule_id)
+        if allow_unrelated_dirty:
+            conflicting = _dirty_files_in_set(engine.repo_root, prospective_moves)
+            if conflicting:
+                return {"error": f"working tree dirty in files this rule would move: {sorted(conflicting)}", "moved": [], "would_move": []}
+        else:
+            if is_working_tree_dirty(engine.repo_root):
+                return {"error": "working tree dirty; commit or stash first (or pass --allow-unrelated-dirty)", "moved": [], "would_move": []}
+
+    if rule_id is not None and not [r for r in engine.rules if r.id == rule_id]:
+        return {"error": f"no rule with id={rule_id}", "moved": [], "would_move": []}
+
+    moves = _compute_moves(engine, rule_id)
 
     if dry_run:
         return {"would_move": moves, "rule_id": rule_id, "count": len(moves)}
@@ -565,6 +603,9 @@ def main() -> int:
     p_dry.add_argument("--rule", help="Limit to single rule id")
     p_apply = sub.add_parser("apply", help="Move files per rules (git mv + link rewrite).")
     p_apply.add_argument("--rule", help="Limit to single rule id")
+    p_apply.add_argument("--allow-unrelated-dirty", action="store_true",
+                         help="Skip working-tree-clean check IF dirty files don't intersect the rule's move set. "
+                              "Useful when concurrent sessions are writing to unrelated paths.")
     p_explain = sub.add_parser("explain", help="Tell agent what rule applies to a path.")
     p_explain.add_argument("path", help="Intended or current file path")
     sub.add_parser("list-rules", help="Catalog of rules in this policy.")
@@ -635,7 +676,8 @@ def main() -> int:
         return 0
 
     if args.cmd == "apply":
-        result = apply_rule(engine, getattr(args, "rule", None), dry_run=False)
+        result = apply_rule(engine, getattr(args, "rule", None), dry_run=False,
+                            allow_unrelated_dirty=getattr(args, "allow_unrelated_dirty", False))
         if "error" in result:
             print(f"ERROR: {result['error']}", file=sys.stderr)
             return 1

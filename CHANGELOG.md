@@ -5,6 +5,16 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.0.2] — 2026-05-24
+
+### Fixed
+
+- `{date-from-filename}` token regex was too greedy: matched any 4-digit sequence as a year. Now requires 4-digit years starting with `2` (range 2000-2999). Filenames like `v1.10_FormalCertificate_0427.txt` (where `0427` is MM-DD, not year 0427) now correctly fall back to current `YYYY-MM`. 3 new tests added.
+
+### Added
+
+- New `--allow-unrelated-dirty` flag on `apply` subcommand: skips the working-tree-clean check IF dirty files don't intersect the rule's prospective move set. Lets routing apply proceed when a concurrent session is writing to unrelated paths (e.g. proof corpora when the rule moves docs).
+
 ## [v1.0.1] — 2026-05-24
 
 ### Changed
