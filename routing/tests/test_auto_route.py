@@ -93,6 +93,16 @@ class TestTemplateRendering:
         result = ar.render_target("renamed/{relative-path}", Path("docs/superpowers/foo.md"), tmp_path)
         assert result == "renamed/docs/superpowers/foo.md"
 
+    def test_strip_prefix_token(self, tmp_path):
+        """v1.0.3: {strip-prefix:foo/bar/} strips that prefix from the relative path."""
+        result = ar.render_target("docs/planning/{strip-prefix:docs/superpowers/}", Path("docs/superpowers/plans/foo.md"), tmp_path)
+        assert result == "docs/planning/plans/foo.md"
+
+    def test_strip_prefix_no_match(self, tmp_path):
+        """If the prefix doesn't match, full relative path is used."""
+        result = ar.render_target("dest/{strip-prefix:other/}", Path("docs/superpowers/foo.md"), tmp_path)
+        assert result == "dest/docs/superpowers/foo.md"
+
 
 # === condition DSL tests ==================================================
 

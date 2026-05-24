@@ -5,6 +5,12 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.0.3] — 2026-05-24
+
+### Added
+
+- New `{strip-prefix:foo/bar/}` template token strips the given leading prefix from `{relative-path}`. Use case: rename rules like `docs/superpowers/**` → `docs/planning/**` where you want only the path-under-the-pattern, not the full source path. Without strip-prefix, `target: docs/planning/{relative-path}` would resolve to `docs/planning/docs/superpowers/...`. With strip-prefix, `target: docs/planning/{strip-prefix:docs/superpowers/}` resolves correctly to `docs/planning/...`. 2 new tests.
+
 ## [v1.0.2] — 2026-05-24
 
 ### Fixed

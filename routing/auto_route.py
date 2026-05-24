@@ -35,7 +35,7 @@ except ImportError:
 
 # === Constants ============================================================
 
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 DEFAULT_EXCLUDED_DIRS = {
     ".git", "target", "node_modules", "__pycache__", ".venv", "venv",
@@ -229,6 +229,16 @@ def render_target(target_template: str, source_path: Path, repo_root: Path) -> s
     result = result.replace("{YYYY-MM}", yyyy_mm)
     result = result.replace("{date-from-filename}", date_from_fn or yyyy_mm)
     result = result.replace("{lower-kebab-name}", lower_kebab_name)
+
+    # {strip-prefix:foo/bar/} -- strip leading "foo/bar/" from relative_path
+    strip_re = re.compile(r"\{strip-prefix:([^}]+)\}")
+    def _strip_sub(m):
+        prefix = m.group(1)
+        if relative_path.startswith(prefix):
+            return relative_path[len(prefix):]
+        return relative_path
+    result = strip_re.sub(_strip_sub, result)
+
     result = result.replace("{relative-path}", relative_path)
     return result
 
