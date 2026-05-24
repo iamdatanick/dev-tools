@@ -35,11 +35,14 @@ except ImportError:
 
 # === Constants ============================================================
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 
 DEFAULT_EXCLUDED_DIRS = {
     ".git", "target", "node_modules", "__pycache__", ".venv", "venv",
     "dist", "build", "artifacts", ".cache", ".pytest_cache", ".mypy_cache",
+    # Reusable-workflow engine-checkout dir (consumer side). Skip so the engine
+    # doesn't try to route its own test fixtures inside the consumer's tree.
+    ".dev-tools",
 }
 
 DATE_FROM_FILENAME_RE = re.compile(r"(2\d{3}-\d{2}-\d{2})|(2\d{3}-\d{2})|(2\d{3})")

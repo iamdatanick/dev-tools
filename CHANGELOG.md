@@ -5,6 +5,12 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.1.3] — 2026-05-24
+
+### Fixed
+
+- Engine now skips `.dev-tools/` during repo walk (added to `DEFAULT_EXCLUDED_DIRS`). When the auto-route reusable workflow checks out the engine into `.dev-tools/` on the consumer side, the engine itself was walking into that directory and trying to route its own test fixtures (e.g. `routing/tests/fixtures/sample-repo/TODO_2025-12-01.md`) — failing with `fatal: not under version control` and never reaching the actual misplaced consumer files. Found during E2E test of v1.1.2 on cubie-math PR #290.
+
 ## [v1.1.2] — 2026-05-24
 
 ### Fixed
