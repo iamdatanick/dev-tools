@@ -1,0 +1,46 @@
+# Starter routing policy. Copy to <your-repo>/tools/repo_routing_policy.yaml and customise.
+#
+# Rules apply IN ORDER. First matching rule wins. Put most-specific rules first.
+# Schema: see routing/repo_routing_policy.schema.json in iamdatanick/dev-tools.
+
+version: 1
+description: |
+  Generic starter rule set. Suitable for most repos. Customise per consumer.
+
+rules:
+
+  # ─── Root cleanup ──────────────────────────────────────────────────────
+  - id: single-root-todo
+    pattern: "TODO*.md"
+    location: "/"
+    keep: ["TODO.md"]
+    move_rest_to: "docs/archive/{YYYY-MM}/todo-snapshots"
+    reason: "Only one TODO.md at root; dated TODOs are historical snapshots."
+
+  - id: no-versioned-duplicates
+    forbid_pattern: "*{_v2,_copy,_backup,_old}*"
+    redirect_to: "docs/archive/{YYYY-MM}/"
+    reason: "Cardinal rule: ONE canonical file per artifact. Use dated archive for history."
+
+  # ─── docs/ subtree routing ─────────────────────────────────────────────
+  - id: audits-consolidation
+    pattern: "{AUDIT_*,*_AUDIT}.md"
+    location: "any"
+    exceptions: ["docs/audits/**", "docs/archive/**"]
+    target: "docs/audits"
+    reason: "All audit outputs live in docs/audits/ regardless of where authored."
+
+  - id: dated-tracking-bench
+    pattern: "*_20[2-9][0-9]-[0-9][0-9]-[0-9][0-9].md"
+    location: "any"
+    exceptions: ["docs/benchmarks/**", "docs/archive/**"]
+    target: "docs/benchmarks/{date-from-filename}"
+    reason: "Dated bench/tracking docs cluster by date under docs/benchmarks/."
+
+  # ─── SoT enforcement ───────────────────────────────────────────────────
+  - id: sot-data-location
+    pattern: "*.{csv,jsonl}"
+    location: "any"
+    exceptions: ["roadmap/**", "artifacts/**", "tools/test-fixtures/**", "target/**", "node_modules/**"]
+    target: "roadmap"
+    reason: "Structured single-source-of-truth data lives in roadmap/."

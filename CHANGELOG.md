@@ -1,0 +1,34 @@
+# Changelog
+
+All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
+
+Consumers pin to `@v1` for all v1.x.y patches automatically.
+Bumping to `@v2` requires explicit consumer migration.
+
+## [v1.0.0] — 2026-05-23
+
+Initial release.
+
+### Added
+
+- `routing/auto_route.py` — declarative routing engine with 6 subcommands (`check`, `dry-run`, `apply`, `explain`, `list-rules`, `version`)
+- `routing/repo_routing_policy.schema.json` — JSON Schema for policy YAML
+- `routing/templates/repo_routing_policy.starter.yaml` — starter rule set (5 rules: single-root-todo, no-versioned-duplicates, audits-consolidation, dated-tracking-bench, sot-data-location)
+- `routing/templates/NAVIGATION.starter.md` — agent entry doc template for consumer repos
+- `routing/templates/auto_route.sh` — consumer-side shim that downloads and invokes the engine
+- `routing/tests/test_auto_route.py` + `test_repo_routing_policy.py` — 48 unit + integration tests
+- `routing/tests/fixtures/sample-repo/` — intentionally-misplaced fixture for integration tests
+- `.github/workflows/repo_routing_reusable.yml` — reusable workflow for consumer repos
+- `.github/workflows/ci.yml` — engine self-tests
+- `README.md` — consumer integration guide
+
+### Engine capabilities
+
+- Pattern matching: glob (with `{}` brace expansion and `**` recursive), location-constrained, exception lists
+- Template tokens: `{YYYY-MM}`, `{YYYY-MM-DD}`, `{date-from-filename}`, `{lower-kebab-name}`, `{relative-path}`
+- Condition DSL: `all_checkboxes_checked`, `any_checkbox_unchecked`, `age > Nd`, `has_keyword(...)`, `matches_regex(...)`, `referenced_by_count > N`, combinable with `and` / `or`
+- Atomic apply: `git mv` preserves history; in-repo markdown links rewritten in same commit
+- Submodule exclusion: `.gitmodules` parsed; never enters submodule paths
+- Default-excluded dirs: `.git`, `target`, `node_modules`, `__pycache__`, `.venv`, `venv`, `dist`, `build`, `artifacts`, `.cache`, `.pytest_cache`, `.mypy_cache`
+- Refuses `apply` with dirty working tree
+- Output formats: text, json, markdown

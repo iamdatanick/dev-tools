@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/iamdatanick/dev-tools/routing/repo_routing_policy.schema.json",
+  "title": "RepoRoutingPolicy",
+  "description": "Declarative routing rules for cubie-* and other Centillion repos. Consumed by routing/auto_route.py. Every file in a consumer repo must satisfy exactly one applicable rule (or none, meaning no constraint). CI gate fails the PR if any file violates an applicable rule.",
+  "type": "object",
+  "required": ["version", "rules"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Policy schema version. Monotonic. Breaking changes increment this."
+    },
+    "description": {
+      "type": "string",
+      "description": "Free-form description of THIS policy (per consumer). Optional."
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/rule" }
+    }
+  },
+  "$defs": {
+    "rule": {
+      "type": "object",
+      "required": ["id", "reason"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*[a-z0-9]$",
+          "description": "Kebab-case unique rule id. Cited in commit messages: 'Routing: rule=<id>'."
+        },
+        "description": {
+          "type": "string",
+          "description": "Short human-readable description."
+        },
+        "reason": {
+          "type": "string",
+          "description": "WHY this rule exists. Required so future maintainers understand intent."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Glob (with {} alternation and [] character classes) matching paths that THIS rule governs. Mutually exclusive with forbid_pattern."
+        },
+        "forbid_pattern": {
+          "type": "string",
+          "description": "Glob matching paths that MUST NOT exist. Mutually exclusive with pattern."
+        },
+        "location": {
+          "type": "string",
+          "description": "Where the matched file currently must live to trigger this rule. '/' = repo root; 'any' = any location; otherwise a path. Default 'any'."
+        },
+        "exceptions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Glob patterns to SKIP even if pattern matches. Useful for excluding already-canonical files."
+        },
+        "target": {
+          "type": "string",
+          "description": "Destination path. Supports template tokens: {YYYY-MM}, {YYYY-MM-DD}, {date-from-filename}, {lower-kebab-name}, {relative-path}."
+        },
+        "keep": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Basenames to KEEP at location even though they match pattern. Paired with move_rest_to."
+        },
+        "move_rest_to": {
+          "type": "string",
+          "description": "Destination for files matching pattern but NOT in keep[]."
+        },
+        "extract_to": {
+          "type": "string",
+          "description": "Path to a JSONL/CSV file where this rule appends item entries (for content extraction rules). Engine emits a TODO log, does not implement content parsing in v1."
+        },
+        "then_archive_to": {
+          "type": "string",
+          "description": "After extract_to, source file moves here."
+        },
+        "redirect_to": {
+          "type": "string",
+          "description": "For forbid_pattern violations: human-suggested destination."
+        },
+        "keep_basename": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preserve the original filename at the destination. If false, target must use {lower-kebab-name}."
+        },
+        "condition": {
+          "type": "string",
+          "description": "Optional condition DSL expression. Supported predicates: all_checkboxes_checked, any_checkbox_unchecked, age > Nd, has_keyword(<str>), matches_regex(<re>), referenced_by_count > N. Combine with 'and'/'or'."
+        },
+        "auto_apply": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, weekly cron CI workflow applies this rule automatically."
+        },
+        "schedule": {
+          "type": "string",
+          "enum": ["weekly", "monthly"],
+          "description": "Required when auto_apply is true."
+        }
+      },
+      "oneOf": [
+        { "required": ["pattern"], "not": { "required": ["forbid_pattern"] } },
+        { "required": ["forbid_pattern"], "not": { "required": ["pattern"] } }
+      ],
+      "anyOf": [
+        { "required": ["target"] },
+        { "required": ["keep", "move_rest_to"] },
+        { "required": ["extract_to", "then_archive_to"] },
+        { "required": ["forbid_pattern"] }
+      ]
+    }
+  }
+}

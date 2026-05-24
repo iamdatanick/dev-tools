@@ -1,0 +1,26 @@
+name: CI — engine self-tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install pyyaml pytest
+      - name: Run engine tests
+        run: python -m pytest routing/tests/ -v
+      - name: Smoke-test CLI
+        run: |
+          python routing/auto_route.py version
+          python routing/auto_route.py \
+            --policy routing/templates/repo_routing_policy.starter.yaml \
+            --format json \
+            list-rules > /dev/null
