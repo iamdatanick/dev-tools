@@ -35,7 +35,7 @@ except ImportError:
 
 # === Constants ============================================================
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 DEFAULT_EXCLUDED_DIRS = {
     ".git", "target", "node_modules", "__pycache__", ".venv", "venv",
@@ -354,7 +354,10 @@ class Engine:
             return f"{render_target(rule.move_rest_to, path, self.repo_root).rstrip('/')}/{path.name}"
         if rule.target:
             rendered = render_target(rule.target, path, self.repo_root)
-            if "{lower-kebab-name}" in rule.target or "{relative-path}" in rule.target:
+            # If template already contains the path/name (these tokens expand to the file),
+            # use the rendered result as-is. Otherwise append basename.
+            path_tokens = ("{lower-kebab-name}", "{relative-path}", "{strip-prefix:")
+            if any(tok in rule.target for tok in path_tokens):
                 return rendered
             if rule.keep_basename:
                 return f"{rendered.rstrip('/')}/{path.name}"

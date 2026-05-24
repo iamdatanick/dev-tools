@@ -246,6 +246,23 @@ class TestEngine:
         result = sample_engine.explain("some/random/path.md")
         assert result["rule_id"] is None
 
+    def test_strip_prefix_target_no_double_path(self, tmp_path):
+        """v1.0.4: when target uses {strip-prefix:}, don't append basename on top."""
+        policy = tmp_path / "policy.yaml"
+        policy.write_text('''version: 1
+rules:
+  - id: rename-test
+    pattern: "docs/superpowers/**/*"
+    target: "docs/planning/{strip-prefix:docs/superpowers/}"
+    reason: "test"
+''')
+        # Set up sample repo structure
+        (tmp_path / "docs" / "superpowers" / "plans").mkdir(parents=True)
+        (tmp_path / "docs" / "superpowers" / "plans" / "foo.md").write_text("")
+        engine = ar.Engine(policy, tmp_path)
+        result = engine.explain("docs/superpowers/plans/foo.md")
+        assert result["suggested_target"] == "docs/planning/plans/foo.md",             f"expected docs/planning/plans/foo.md, got {result['suggested_target']!r}"
+
     def test_explain_compliant_file(self, sample_engine):
         result = sample_engine.explain("TODO.md")
         # TODO.md is in the keep[] list — engine returns no rule_id (compliant)

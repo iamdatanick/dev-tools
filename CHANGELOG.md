@@ -5,6 +5,12 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.0.4] — 2026-05-24
+
+### Fixed
+
+- When a rule's `target` used `{strip-prefix:...}` (added in v1.0.3), the engine still appended the file basename on top, producing doubled paths like `docs/planning/plans/foo.md/foo.md`. Engine now recognises `{strip-prefix:` as a path-containing token (alongside `{lower-kebab-name}` and `{relative-path}`). 1 new regression test.
+
 ## [v1.0.3] — 2026-05-24
 
 ### Added
