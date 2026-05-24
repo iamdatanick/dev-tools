@@ -5,6 +5,12 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.1.1] — 2026-05-24
+
+### Fixed
+
+- `auto_route_apply_reusable.yml` had invalid YAML in the bot-comment step (multi-line JavaScript array with backtick markdown fences confused the YAML parser, causing the workflow to fail at parse time with "found character ` that cannot start any token"). Dropped the bot-comment step entirely — the auto-applied commit on the PR branch is sufficient feedback. PR author sees the `chore(routing): auto-apply rules` commit directly. Workflow now passes YAML validation. Verified with `python3 -c "import yaml; yaml.safe_load(open(path))"`.
+
 ## [v1.1.0] — 2026-05-24
 
 ### Added

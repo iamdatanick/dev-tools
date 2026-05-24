@@ -2,7 +2,7 @@ name: Auto-Route Apply (reusable)
 
 # Pattern B: pre-merge auto-correct.
 # Runs on pull_request. Applies routing rules against the PR branch.
-# Pushes corrections back to the PR branch (NOT a separate commit on master).
+# Pushes corrections back to the PR branch.
 # Exits 0 regardless of whether changes were made (non-blocking).
 #
 # Consumer invocation:
@@ -15,7 +15,7 @@ name: Auto-Route Apply (reusable)
 # Requirements on the consumer repo:
 #   - Settings -> Actions -> General -> Workflow permissions -> "Read and write permissions"
 #
-# Forks: workflow is skipped automatically (pull_request from a fork has read-only token).
+# Forks: workflow is skipped automatically.
 
 on:
   workflow_call:
@@ -38,7 +38,6 @@ on:
 
 jobs:
   apply:
-    # Skip on PRs from forks (no write access to PR branch).
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
@@ -83,12 +82,13 @@ jobs:
       - name: Run auto-route (apply all rules)
         id: apply
         run: |
-          python3 .dev-tools/routing/auto_route.py             --policy ${{ inputs.policy-path }}             --root .             apply --allow-unrelated-dirty 2>&1 | tee /tmp/auto_route_output.txt || true
-
+          set +e
+          python3 .dev-tools/routing/auto_route.py --policy "${{ inputs.policy-path }}" --root . apply --allow-unrelated-dirty 2>&1 | tee /tmp/auto_route_output.txt
+          set -e
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "moves_made=true" >> $GITHUB_OUTPUT
             git add -A
-            git commit -m "${{ inputs.commit-message }}"               -m "Automated routing applied via iamdatanick/dev-tools@${{ inputs.engine-ref }}."               -m "$(cat /tmp/auto_route_output.txt | tail -30)"
+            git commit -m "${{ inputs.commit-message }}"
           else
             echo "moves_made=false" >> $GITHUB_OUTPUT
             echo "No routing changes needed."
@@ -98,23 +98,3 @@ jobs:
         if: steps.apply.outputs.moves_made == 'true'
         run: |
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
-
-      - name: Comment on PR
-        if: steps.apply.outputs.moves_made == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const output = fs.readFileSync('/tmp/auto_route_output.txt', 'utf8').slice(0, 2000);
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: "Auto-route applied. Files moved to canonical locations per tools/repo_routing_policy.yaml.
-
-" + "```
-" + output + "
-```
-
-_Non-blocking. Engine: iamdatanick/dev-tools@${{ inputs.engine-ref }}._"
-            });
