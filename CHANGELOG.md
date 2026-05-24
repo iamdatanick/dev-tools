@@ -5,6 +5,13 @@ All notable changes documented here. Semver: `vMAJOR.MINOR.PATCH`.
 Consumers pin to `@v1` for all v1.x.y patches automatically.
 Bumping to `@v2` requires explicit consumer migration.
 
+## [v1.0.1] — 2026-05-24
+
+### Changed
+
+- Repo visibility flipped to public; reusable workflow no longer requires `DEV_TOOLS_PAT` secret. Consumers can now invoke without configuring any secrets.
+- README + workflow header comment updated to reflect public-access flow.
+
 ## [v1.0.0] — 2026-05-23
 
 Initial release.

@@ -6,8 +6,6 @@ name: Repo Routing (reusable)
 #       uses: iamdatanick/dev-tools/.github/workflows/repo_routing_reusable.yml@v1
 #       with:
 #         policy-path: tools/repo_routing_policy.yaml
-#       secrets:
-#         DEV_TOOLS_PAT: ${{ secrets.DEV_TOOLS_PAT }}
 
 on:
   workflow_call:
@@ -22,11 +20,6 @@ on:
         required: false
         type: string
         default: 'v1.0.0'
-    secrets:
-      DEV_TOOLS_PAT:
-        description: 'PAT with contents:read on iamdatanick/dev-tools (required since dev-tools is private)'
-        required: true
-
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -42,7 +35,6 @@ jobs:
           repository: iamdatanick/dev-tools
           ref: ${{ inputs.engine-ref }}
           path: .dev-tools
-          token: ${{ secrets.DEV_TOOLS_PAT }}
 
       - uses: actions/setup-python@v5
         with:

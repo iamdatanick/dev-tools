@@ -29,19 +29,9 @@ jobs:
     uses: iamdatanick/dev-tools/.github/workflows/repo_routing_reusable.yml@v1
     with:
       policy-path: tools/repo_routing_policy.yaml
-    secrets:
-      DEV_TOOLS_PAT: ${{ secrets.DEV_TOOLS_PAT }}
 ```
 
-### 3. The PAT
-
-Because `iamdatanick/dev-tools` is private, every consumer repo needs a fine-grained personal access token with `contents:read` on this repo, stored as repo secret `DEV_TOOLS_PAT`:
-
-```bash
-gh secret set DEV_TOOLS_PAT --repo <consumer-repo> --body "<pat-string>"
-```
-
-### 4. Run locally
+### 3. Run locally
 
 ```bash
 bash tools/auto_route.sh check                  # CI parity locally
@@ -91,7 +81,7 @@ Global flags: `--policy <path>`, `--root <path>`, `--format text|json|markdown`.
 │  Released as: v1.0.0, v1.x.y, v2.0.0   (semver)                     │
 └────────────────────────────────────────────────────────────────────┘
             ▲
-            │ consumed via uses: iamdatanick/dev-tools@v1 + PAT
+            │ consumed via uses: iamdatanick/dev-tools@v1
             │
 ┌────────────────────────────────────────────────────────────────────┐
 │  Consumer repo (cubie-math, cubie-eu, RAKKIT, trustfortress, ...)   │
